@@ -1,0 +1,389 @@
+@import "tailwindcss";
+
+@theme {
+  --color-bg: #050506;
+  --color-fg: #f4f4f5;
+  --color-muted: #a1a1aa;
+  --color-glass: rgb(255 255 255 / 0.05);
+  --color-line: rgb(255 255 255 / 0.1);
+  --color-up: #3cb371;
+  --color-up-deep: #2e8b57;
+  --color-down: #ff4500;
+  --color-down-deep: #dc143c;
+  --color-chart-grid: rgb(180 180 180 / 0.22);
+  --color-chart-tick: rgb(220 220 220 / 0.7);
+  --font-sans: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Big Shoulders Display", "IBM Plex Sans", sans-serif;
+  --font-mono: "IBM Plex Sans", ui-monospace, "SF Mono", Menlo, monospace;
+  --radius-tile: 1.5rem;
+  --radius-chip: 9999px;
+  --spacing-rail: 22rem;
+  --shadow-up: 0 0 28px rgb(60 179 113 / 0.45);
+  --shadow-down: 0 0 28px rgb(255 69 0 / 0.45);
+}
+
+@layer base {
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    color-scheme: dark;
+  }
+
+  html,
+  body,
+  #app {
+    height: 100%;
+    margin: 0;
+    background: var(--color-bg);
+    color: var(--color-fg);
+  }
+
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: #6b6b73 var(--color-bg);
+  }
+
+  *::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  *::-webkit-scrollbar-track {
+    background: var(--color-bg);
+  }
+
+  *::-webkit-scrollbar-thumb {
+    background: #6b6b73;
+    border: 2px solid var(--color-bg);
+    border-radius: 999px;
+  }
+
+  *::-webkit-scrollbar-thumb:hover {
+    background: #8a8a93;
+  }
+
+  *::-webkit-scrollbar-corner {
+    background: var(--color-bg);
+  }
+
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
+
+  h1,
+  h2,
+  h3 {
+    text-wrap: balance;
+  }
+}
+
+.stardust {
+  background-color: var(--color-bg);
+  background-image:
+    radial-gradient(1px 1px at 18px 24px, rgb(255 255 255 / 0.22), transparent),
+    radial-gradient(1px 1px at 92px 118px, rgb(255 255 255 / 0.14), transparent),
+    radial-gradient(1.5px 1.5px at 154px 62px, rgb(255 255 255 / 0.1), transparent),
+    radial-gradient(1px 1px at 210px 168px, rgb(255 255 255 / 0.16), transparent);
+  background-size: 240px 200px;
+}
+
+.wordmark {
+  font-family: var(--font-display);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  text-shadow:
+    0 0 8px rgb(255 255 255 / 0.55),
+    0 0 18px color-mix(in srgb, var(--color-up) 42%, transparent);
+}
+
+.tape-mask {
+  mask-image: linear-gradient(
+    to right,
+    transparent,
+    #000 1.25rem,
+    #000 calc(100% - 1.25rem),
+    transparent
+  );
+}
+
+.heat-tile {
+  border: 1px solid var(--color-line);
+  background: var(--color-glass);
+  backdrop-filter: blur(24px);
+  border-radius: var(--radius-tile);
+  transition-property: border-color, box-shadow, background;
+  transition-duration: 500ms;
+  transition-timing-function: ease;
+}
+
+.heat-tile.is-up {
+  border-color: color-mix(in srgb, var(--color-up) 30%, transparent);
+  background-image: linear-gradient(
+    to bottom right,
+    color-mix(in srgb, var(--color-up-deep) 70%, transparent),
+    color-mix(in srgb, var(--color-up) 50%, transparent)
+  );
+  box-shadow: var(--shadow-up);
+}
+
+.heat-tile.is-down {
+  border-color: color-mix(in srgb, var(--color-down) 30%, transparent);
+  background-image: linear-gradient(
+    to bottom right,
+    color-mix(in srgb, var(--color-down-deep) 70%, transparent),
+    color-mix(in srgb, var(--color-down) 50%, transparent)
+  );
+  box-shadow: var(--shadow-down);
+}
+
+.heat-tile.is-selected {
+  outline: 2px solid rgb(255 255 255 / 0.55);
+  outline-offset: 2px;
+}
+
+.heat-tile-face {
+  aspect-ratio: 1 / 1;
+}
+
+.heat-flip-scene {
+  perspective: 1100px;
+  border: 0;
+  background: transparent;
+  padding: 0;
+}
+
+.heat-flip-scene.is-selected {
+  outline: 2px solid rgb(255 255 255 / 0.55);
+  outline-offset: 2px;
+  border-radius: var(--radius-tile);
+}
+
+.heat-flip-scene.is-hot,
+.heat-flip-scene:hover {
+  z-index: 4;
+}
+
+.heat-flip-glow {
+  height: 100%;
+  width: 100%;
+  border-radius: var(--radius-tile);
+  transform: scale(1);
+  transform-style: preserve-3d;
+  transition-property: transform, box-shadow;
+  transition-duration: 300ms;
+  transition-timing-function: ease-out;
+}
+
+.heat-flip-scene.is-up .heat-flip-glow {
+  box-shadow: var(--shadow-up);
+}
+
+.heat-flip-scene.is-down .heat-flip-glow {
+  box-shadow: var(--shadow-down);
+}
+
+.heat-flip-scene.is-hot .heat-flip-glow,
+.heat-flip-scene:hover .heat-flip-glow {
+  transform: scale(1.02);
+}
+
+.heat-flip-scene.is-up.is-hot .heat-flip-glow,
+.heat-flip-scene.is-up:hover .heat-flip-glow {
+  box-shadow:
+    0 0 20px 5px color-mix(in srgb, var(--color-up) 50%, transparent),
+    0 0 42px color-mix(in srgb, var(--color-up) 45%, transparent);
+}
+
+.heat-flip-scene.is-down.is-hot .heat-flip-glow,
+.heat-flip-scene.is-down:hover .heat-flip-glow {
+  box-shadow:
+    0 0 20px 5px color-mix(in srgb, var(--color-down) 50%, transparent),
+    0 0 42px color-mix(in srgb, var(--color-down) 45%, transparent);
+}
+
+.heat-flip-scene.is-hot:not(.is-up):not(.is-down) .heat-flip-glow,
+.heat-flip-scene:hover:not(.is-up):not(.is-down) .heat-flip-glow {
+  box-shadow:
+    0 0 20px 5px rgb(255 255 255 / 0.22),
+    0 0 36px rgb(255 255 255 / 0.12);
+}
+
+.heat-flip-inner {
+  position: relative;
+  height: 100%;
+  width: 100%;
+  transform-style: preserve-3d;
+}
+
+.heat-flip-face {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+.heat-flip-face.heat-tile {
+  box-shadow: none;
+}
+
+.heat-flip-front {
+  transform: rotateY(0deg) translateZ(1px);
+}
+
+.heat-flip-back {
+  transform: rotateY(180deg) translateZ(1px);
+}
+
+.glass-panel {
+  border: 1px solid var(--color-line);
+  background: var(--color-glass);
+  backdrop-filter: blur(24px);
+  border-radius: var(--radius-tile);
+}
+
+.registry-dock {
+  border-radius: 0;
+  border-top: 0;
+  border-right: 0;
+  border-bottom: 0;
+  background: color-mix(in srgb, var(--color-bg) 92%, transparent);
+}
+
+.price-chart-shell {
+  box-shadow: 0 0 40px rgb(255 255 255 / 0.04);
+}
+
+.price-chart-shell::before {
+  content: "";
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at top, rgb(255 255 255 / 0.08), transparent 55%);
+}
+
+.price-chart .recharts-cartesian-axis-tick text {
+  fill: var(--color-chart-tick);
+  font-size: 11px;
+}
+
+.price-chart .recharts-cartesian-grid-horizontal line,
+.price-chart .recharts-cartesian-grid-vertical line {
+  stroke: var(--color-chart-grid);
+}
+
+.price-chart .recharts-surface,
+.price-chart .recharts-layer {
+  outline: none;
+}
+
+.chart-tip {
+  min-width: 8rem;
+  border: 1px solid color-mix(in srgb, var(--color-line) 80%, transparent);
+  background: color-mix(in srgb, var(--color-bg) 88%, transparent);
+  backdrop-filter: blur(16px);
+  border-radius: 0.5rem;
+  padding: 0.375rem 0.625rem;
+  box-shadow: 0 12px 32px rgb(0 0 0 / 0.45);
+}
+
+.heat-tip {
+  max-width: 18rem;
+  border: 1px solid var(--color-line);
+  background: color-mix(in srgb, var(--color-bg) 88%, transparent);
+  backdrop-filter: blur(20px);
+  border-radius: 0.75rem;
+  padding: 0.75rem 0.875rem;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  color: var(--color-fg);
+  box-shadow:
+    0 0 0 1px rgb(255 255 255 / 0.04),
+    0 12px 40px rgb(0 0 0 / 0.55);
+  animation: heat-tip-in 160ms ease-out;
+}
+
+@keyframes heat-tip-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .heat-tile {
+    transition: none;
+  }
+
+  .heat-flip-glow {
+    transform: none;
+    transition: none;
+  }
+
+  .heat-flip-back {
+    opacity: 0;
+    transform: none;
+  }
+
+  .heat-flip-scene.is-hot .heat-flip-front {
+    opacity: 0;
+  }
+
+  .heat-flip-scene.is-hot .heat-flip-back {
+    opacity: 1;
+    transform: none;
+  }
+
+  .heat-tip {
+    animation: none;
+  }
+}
+
+.site-header {
+  view-transition-name: site-header;
+}
+
+:root {
+  --page-transition-duration: 0.3s;
+  --page-transition-ease: ease-in-out;
+}
+
+::view-transition-old(root) {
+  animation: page-fade-out var(--page-transition-duration) var(--page-transition-ease) both;
+}
+
+::view-transition-new(root) {
+  animation: page-fade-in var(--page-transition-duration) var(--page-transition-ease) both;
+}
+
+@keyframes page-fade-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes page-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation: none;
+  }
+}
