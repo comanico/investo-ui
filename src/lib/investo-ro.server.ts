@@ -1,7 +1,5 @@
-import { readFile } from "node:fs/promises";
-import path from "node:path";
-import { env } from "./env.server";
 import type { NewsHit } from "./news";
+import { investoRoRoot, readJsonObject } from "./investo-store.server";
 import { isPack, type EquityQuote, type Pack, type PriceTick } from "./types";
 import {
   modelKindOf,
@@ -10,8 +8,6 @@ import {
   type ModelKind,
   type ValuationResult,
 } from "./valuation";
-
-const DEFAULT_ROOT = "D:\\Git\\investo-ro";
 
 type UniverseRow = {
   symbol?: string;
@@ -48,25 +44,7 @@ export type DeskData = {
   news: NewsHit[];
 };
 
-export function investoRoRoot(): string {
-  return env("INVESTO_RO_ROOT") ?? DEFAULT_ROOT;
-}
-
-export function investoRoConfigDir(): string {
-  return path.join(investoRoRoot(), "config");
-}
-
-export function investoRoDataDir(): string {
-  return path.join(investoRoRoot(), "data");
-}
-
-async function readJson<T>(file: string): Promise<T | null> {
-  try {
-    return JSON.parse(await readFile(file, "utf8")) as T;
-  } catch {
-    return null;
-  }
-}
+export { investoRoRoot };
 
 function packOf(sector: string | undefined, fallback: Pack): Pack {
   if (sector && isPack(sector)) return sector;
@@ -107,13 +85,10 @@ function lastTwoCloses(file: PriceFile | null): { last?: number; prev?: number; 
 
 /** Universe from config, prices and models from data/companies. */
 export async function loadDesk(): Promise<DeskData> {
-  const root = investoRoRoot();
-  const configDir = path.join(root, "config");
-  const companiesDir = path.join(root, "data", "companies");
-  const sectors = await readJson<SectorsFile>(path.join(configDir, "sectors.json"));
+  const sectors = await readJsonObject<SectorsFile>("config/sectors.json");
   const fallback: Pack =
     sectors?.default_pack && isPack(sectors.default_pack) ? sectors.default_pack : "industrial";
-  const rows = await readJson<UniverseRow[]>(path.join(configDir, "universe.json"));
+  const rows = await readJsonObject<UniverseRow[]>("config/universe.json");
   if (!Array.isArray(rows)) return { names: [], valuations: {}, news: [] };
 
   const names: EquityQuote[] = [];
@@ -126,11 +101,11 @@ export async function loadDesk(): Promise<DeskData> {
       const name = row.name?.trim();
       if (!ticker || !name) return;
       const pack = packOf(row.sector, fallback);
-      const dir = path.join(companiesDir, ticker);
+      const dir = `data/companies/${ticker}`;
       const [snapshot, valuation, priceFile] = await Promise.all([
-        readJson<SnapshotFile>(path.join(dir, "snapshot.json")),
-        readJson<ValuationFile>(path.join(dir, "valuation.json")),
-        readJson<PriceFile>(path.join(dir, "price.json")),
+        readJsonObject<SnapshotFile>(`${dir}/snapshot.json`),
+        readJsonObject<ValuationFile>(`${dir}/valuation.json`),
+        readJsonObject<PriceFile>(`${dir}/price.json`),
       ]);
       const closes = lastTwoCloses(priceFile);
       const snap = Number(snapshot?.price);
@@ -180,7 +155,7 @@ export async function loadUniverse(): Promise<EquityQuote[]> {
 }
 
 export async function loadTickerNames(): Promise<Record<string, string>> {
-  const rows = await readJson<UniverseRow[]>(path.join(investoRoConfigDir(), "universe.json"));
+  const rows = await readJsonObject<UniverseRow[]>("config/universe.json");
   const map: Record<string, string> = {};
   if (!Array.isArray(rows)) return map;
   for (const row of rows) {
@@ -196,8 +171,7 @@ export async function loadTickerNames(): Promise<Record<string, string>> {
 export async function loadPriceHistory(ticker: string): Promise<PriceTick[]> {
   const symbol = ticker.trim().toUpperCase();
   if (!symbol) return [];
-  const file = path.join(investoRoDataDir(), "companies", symbol, "price.json");
-  const data = await readJson<PriceFile>(file);
+  const data = await readJsonObject<PriceFile>(`data/companies/${symbol}/price.json`);
   const series: PriceTick[] = [];
   for (const row of data?.prices ?? []) {
     const close = Number(row.close);

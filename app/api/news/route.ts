@@ -111,7 +111,8 @@ function hasTickerToken(hay: string, ticker: string): boolean {
 
 function matchTicker(text: string, tickers: string[], names: Record<string, string>): string | null {
   const hay = fold(text);
-  for (const ticker of tickers) {
+  const ordered = [...tickers].sort((a, b) => b.length - a.length);
+  for (const ticker of ordered) {
     const name = names[ticker];
     if (!name) continue;
     for (const needle of needlesFor(name)) {
@@ -119,7 +120,7 @@ function matchTicker(text: string, tickers: string[], names: Record<string, stri
       if (new RegExp(`(^|[^A-Z0-9])${token}([^A-Z0-9]|$)`).test(hay)) return ticker;
     }
   }
-  for (const ticker of tickers) {
+  for (const ticker of ordered) {
     if (hasTickerToken(hay, ticker)) return ticker;
   }
   return null;
@@ -145,16 +146,13 @@ async function pull(url: string, source: string): Promise<ParsedItem[]> {
 }
 
 function googleUrl(tickers: string[], names: Record<string, string>): string {
-  const query =
-    tickers.length === 0 || tickers.length > 8
-      ? `BVB OR "Bursa de Valori Bucuresti"`
-      : tickers
-          .map((ticker) => {
-            const name = names[ticker]?.replace(/"/g, "") ?? "";
-            return name ? `(${ticker} OR "${name}")` : ticker;
-          })
-          .join(" OR ");
-  return `https://news.google.com/rss/search?q=${encodeURIComponent(query)}&hl=ro&gl=RO&ceid=RO:ro`;
+  const query = tickers
+    .map((ticker) => {
+      const name = names[ticker]?.replace(/"/g, "") ?? "";
+      return name ? `(${ticker} OR "${name}")` : ticker;
+    })
+    .join(" OR ");
+  return `https://news.google.com/rss/search?q=${encodeURIComponent(query || 'BVB OR "Bursa de Valori Bucuresti"')}&hl=ro&gl=RO&ceid=RO:ro`;
 }
 
 function chunks<T>(items: T[], size: number): T[][] {
@@ -163,28 +161,43 @@ function chunks<T>(items: T[], size: number): T[][] {
   return out;
 }
 
-function mixBySource(hits: Hit[], limit: number): Hit[] {
+function mixHits(hits: Hit[], limit: number): Hit[] {
+  const named = hits.filter((hit) => hit.ticker.toUpperCase() !== "BVB");
+  const pool = named.length ? named : hits;
   const buckets = new Map<string, Hit[]>();
-  for (const hit of hits) {
-    const list = buckets.get(hit.source) ?? [];
+  for (const hit of pool) {
+    const key = hit.ticker.toUpperCase();
+    const list = buckets.get(key) ?? [];
     list.push(hit);
-    buckets.set(hit.source, list);
+    buckets.set(key, list);
   }
+  const keys = [...buckets.keys()];
   const picked: Hit[] = [];
   const seen = new Set<string>();
-  const round = Math.max(2, Math.ceil(limit / Math.max(1, buckets.size)));
-  for (const list of buckets.values()) {
-    for (const hit of list.slice(0, round)) {
+  const minEach = Math.max(1, Math.floor(limit / Math.max(1, keys.length)));
+  for (const key of keys) {
+    let got = 0;
+    for (const hit of buckets.get(key) ?? []) {
+      if (got >= minEach) break;
       if (seen.has(hit.id)) continue;
       seen.add(hit.id);
       picked.push(hit);
+      got += 1;
     }
   }
-  for (const hit of hits) {
-    if (picked.length >= limit) break;
-    if (seen.has(hit.id)) continue;
-    seen.add(hit.id);
-    picked.push(hit);
+  let depth = minEach;
+  while (picked.length < limit) {
+    let added = false;
+    for (const key of keys) {
+      if (picked.length >= limit) break;
+      const hit = (buckets.get(key) ?? [])[depth];
+      if (!hit || seen.has(hit.id)) continue;
+      seen.add(hit.id);
+      picked.push(hit);
+      added = true;
+    }
+    if (!added) break;
+    depth += 1;
   }
   picked.sort((a, b) => {
     const ta = Date.parse(a.at);
@@ -219,12 +232,10 @@ export async function GET(request: Request) {
 
   const googleJobs =
     tickers.length > 0
-      ? tickers.length > 8
-        ? [{ group: tickers, url: googleUrl(tickers, names) }]
-        : chunks(tickers, 4).map((group) => ({
-            group,
-            url: googleUrl(group, names),
-          }))
+      ? chunks(tickers, 4).map((group) => ({
+          group,
+          url: googleUrl(group, names),
+        }))
       : [];
 
   const [rssBatches, ...googleBatches] = await Promise.all([
@@ -242,18 +253,19 @@ export async function GET(request: Request) {
         ? matchTicker(`${item.headline} ${item.body ?? ""}`, tickers, names)
         : null;
       if (matched) pushHit(hits, seen, item, matched);
-      else if (tickers.length !== 1) pushHit(hits, seen, item, "BVB");
+      else if (!tickers.length) pushHit(hits, seen, item, "BVB");
     }
   }
 
   googleJobs.forEach((job, index) => {
     for (const item of googleBatches[index] ?? []) {
       if (!item.headline) continue;
-      const matched = tickers.length
-        ? matchTicker(`${item.headline} ${item.body ?? ""}`, tickers, names)
-        : null;
-      const ticker = matched ?? (tickers.length === 1 ? tickers[0] : "BVB");
-      pushHit(hits, seen, item, ticker);
+      const text = `${item.headline} ${item.body ?? ""}`;
+      const matched =
+        matchTicker(text, job.group, names) ??
+        (tickers.length ? matchTicker(text, tickers, names) : null);
+      if (matched) pushHit(hits, seen, item, matched);
+      else if (tickers.length === 1) pushHit(hits, seen, item, tickers[0]);
     }
   });
 
@@ -264,6 +276,6 @@ export async function GET(request: Request) {
     return tb - ta;
   });
 
-  const limit = Math.min(48, Math.max(12, tickers.length * 2 || 12));
-  return NextResponse.json(mixBySource(hits, limit));
+  const limit = Math.min(120, Math.max(24, tickers.length * 3 || 24));
+  return NextResponse.json(mixHits(hits, limit));
 }

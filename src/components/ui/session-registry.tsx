@@ -20,9 +20,9 @@ export function SessionRegistry({
         <table className="w-full table-fixed caption-bottom text-sm">
           <thead>
             <tr className="border-b border-line">
-              <th className="h-9 w-14 px-2 text-left font-medium text-fg/45">When</th>
-              <th className="h-9 w-12 px-2 text-left font-medium text-fg/45">Ticker</th>
-              <th className="h-9 px-2 text-left font-medium text-fg/45">Headline</th>
+              <th className="h-9 w-14 px-1.5 text-left font-medium text-fg/45">When</th>
+              <th className="h-9 w-24 px-1.5 text-left font-medium text-fg/45">Ticker</th>
+              <th className="h-9 min-w-0 px-2 text-left font-medium text-fg/45">Headline</th>
             </tr>
           </thead>
           <tbody>
@@ -37,14 +37,16 @@ export function SessionRegistry({
                   transition={{ duration: 0.35 }}
                   className="border-b border-fg/5 align-top"
                 >
-                  <td className="px-2 py-2 text-fg/50 tabular-nums">
+                  <td className="px-1.5 py-2 text-fg/50 tabular-nums">
                     {new Date(item.at).toLocaleDateString("en-GB", {
                       day: "2-digit",
                       month: "short",
                     })}
                   </td>
-                  <td className="px-2 py-2 font-medium text-fg">{item.ticker}</td>
-                  <td className="min-w-0 px-2 py-2 break-words text-fg/90">
+                  <td className="max-w-24 overflow-hidden px-1.5 py-2 font-medium whitespace-nowrap text-fg">
+                    {item.ticker}
+                  </td>
+                  <td className="min-w-0 overflow-hidden px-2 py-2 break-words text-fg/90">
                     {item.url ? (
                       <a href={item.url} target="_blank" rel="noreferrer" className="hover:underline">
                         {item.headline}
