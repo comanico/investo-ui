@@ -26,6 +26,7 @@ export type EquityQuote = {
   pack: Pack;
   price: number;
   open: number;
+  prevClose?: number;
   asOf?: string;
   blurb?: string;
   themes?: Theme[];

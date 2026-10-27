@@ -2,7 +2,7 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { env } from "./env.server";
 import type { NewsHit } from "./news";
-import { isPack, type EquityQuote, type Pack } from "./types";
+import { isPack, type EquityQuote, type Pack, type PriceTick } from "./types";
 import {
   modelKindOf,
   valuationFromBackend,
@@ -36,6 +36,10 @@ type ValuationFile = {
   symbol?: string;
   pack?: string;
   models?: BackendModelRow[];
+};
+
+type PriceFile = {
+  prices?: { date?: string; close?: number }[];
 };
 
 export type DeskData = {
@@ -87,6 +91,20 @@ function formatAsOf(priceDate: string | undefined): string {
   return stamp.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
 }
 
+function lastTwoCloses(file: PriceFile | null): { last?: number; prev?: number; lastDate?: string } {
+  let last: number | undefined;
+  let prev: number | undefined;
+  let lastDate: string | undefined;
+  for (const row of file?.prices ?? []) {
+    const close = Number(row.close);
+    if (!Number.isFinite(close) || close <= 0) continue;
+    prev = last;
+    last = close;
+    lastDate = row.date;
+  }
+  return { last, prev, lastDate };
+}
+
 /** Universe from config, prices and models from data/companies. */
 export async function loadDesk(): Promise<DeskData> {
   const root = investoRoRoot();
@@ -109,13 +127,16 @@ export async function loadDesk(): Promise<DeskData> {
       if (!ticker || !name) return;
       const pack = packOf(row.sector, fallback);
       const dir = path.join(companiesDir, ticker);
-      const [snapshot, valuation] = await Promise.all([
+      const [snapshot, valuation, priceFile] = await Promise.all([
         readJson<SnapshotFile>(path.join(dir, "snapshot.json")),
         readJson<ValuationFile>(path.join(dir, "valuation.json")),
+        readJson<PriceFile>(path.join(dir, "price.json")),
       ]);
-      const price = Number(snapshot?.price);
-      const last = Number.isFinite(price) && price > 0 ? price : 0;
-      const asOf = formatAsOf(snapshot?.priceDate);
+      const closes = lastTwoCloses(priceFile);
+      const snap = Number(snapshot?.price);
+      const last =
+        closes.last ?? (Number.isFinite(snap) && snap > 0 ? snap : 0);
+      const asOf = formatAsOf(closes.lastDate ?? snapshot?.priceDate);
       const blurb = snapshot?.caenDescription?.trim() || row.caenDescription?.trim();
 
       names.push({
@@ -124,6 +145,7 @@ export async function loadDesk(): Promise<DeskData> {
         pack,
         price: last,
         open: last,
+        prevClose: closes.prev,
         asOf,
         blurb: blurb && blurb !== "\u00a0" ? blurb : undefined,
       });
@@ -155,4 +177,35 @@ export async function loadDesk(): Promise<DeskData> {
 export async function loadUniverse(): Promise<EquityQuote[]> {
   const desk = await loadDesk();
   return desk.names;
+}
+
+export async function loadTickerNames(): Promise<Record<string, string>> {
+  const rows = await readJson<UniverseRow[]>(path.join(investoRoConfigDir(), "universe.json"));
+  const map: Record<string, string> = {};
+  if (!Array.isArray(rows)) return map;
+  for (const row of rows) {
+    const ticker = row.symbol?.trim().toUpperCase();
+    const name = row.name?.trim();
+    if (!ticker || !name) continue;
+    map[ticker] = name;
+  }
+  return map;
+}
+
+/** Daily closes from data/companies/{ticker}/price.json. */
+export async function loadPriceHistory(ticker: string): Promise<PriceTick[]> {
+  const symbol = ticker.trim().toUpperCase();
+  if (!symbol) return [];
+  const file = path.join(investoRoDataDir(), "companies", symbol, "price.json");
+  const data = await readJson<PriceFile>(file);
+  const series: PriceTick[] = [];
+  for (const row of data?.prices ?? []) {
+    const close = Number(row.close);
+    if (!row.date || !Number.isFinite(close) || close <= 0) continue;
+    const t = Date.parse(`${row.date}T00:00:00`);
+    if (!Number.isFinite(t)) continue;
+    series.push({ t, p: close });
+  }
+  series.sort((a, b) => a.t - b.t);
+  return series;
 }

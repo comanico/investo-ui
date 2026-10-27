@@ -4,18 +4,20 @@ import { ArrowLeft } from "lucide-react";
 import { TransitionLink } from "@/components/transition-link";
 import { PACK_ICONS } from "./heat-card";
 import { AiBrief } from "./ai-brief";
+import { PriceChart } from "./price-chart";
 import { SessionRegistry } from "./session-registry";
 import { ModelFormulas, ValuationCard } from "./valuation-card";
 import { COMPANY_VENUE } from "@/lib/profiles";
 import { formatRon, PACK_LABEL } from "@/lib/market";
+import type { PriceTick } from "@/lib/types";
 import { formatSignedPct, heatFromStance, STANCE_LABEL } from "@/lib/valuation";
-import { newsFor } from "@/lib/news";
-import { useNames, useNews, useValuation } from "@/lib/session-provider";
+import { useDeskNews } from "@/lib/use-desk-news";
+import { useNames, useValuation } from "@/lib/session-provider";
 import { cn } from "@/lib/utils";
 
-export function CompanyProfile({ ticker }: { ticker: string }) {
+export function CompanyProfile({ ticker, series = [] }: { ticker: string; series?: PriceTick[] }) {
   const names = useNames();
-  const news = useNews();
+  const news = useDeskNews([ticker]);
   const valuation = useValuation(ticker);
   const quote = names.find((row) => row.ticker.toUpperCase() === ticker.toUpperCase());
 
@@ -35,19 +37,20 @@ export function CompanyProfile({ ticker }: { ticker: string }) {
   const Icon = PACK_ICONS[quote.pack];
   const { isUp, isDown } = heatFromStance(valuation?.stance);
   const blurb = quote.blurb;
-  const mine = newsFor([quote.ticker], news);
+  const mine = news;
 
   return (
-    <main className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-4 pb-8 lg:flex-row lg:overflow-hidden">
-      <div className="min-w-0 flex-1 space-y-4 lg:overflow-y-auto lg:pr-1">
-        <BackLink />
-        <section
-          className={cn(
-            "heat-tile p-5 sm:p-6",
-            isUp && "is-up",
-            isDown && "is-down",
-          )}
-        >
+    <main className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-4 pb-8">
+      <BackLink />
+      <div className="relative">
+        <div className="min-w-0 space-y-4 lg:pr-[calc(var(--spacing-rail)+1rem)]">
+          <section
+            className={cn(
+              "heat-tile p-5 sm:p-6",
+              isUp && "is-up",
+              isDown && "is-down",
+            )}
+          >
           <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
             <div className="flex size-16 shrink-0 items-center justify-center rounded-full bg-fg/10 sm:size-20">
               <Icon className="size-8 text-fg/90 sm:size-10" strokeWidth={1.5} />
@@ -84,6 +87,8 @@ export function CompanyProfile({ ticker }: { ticker: string }) {
           <Stat label="Pack" value={PACK_LABEL[quote.pack]} />
         </div>
 
+        <PriceChart ticker={quote.ticker} name={quote.name} series={series} />
+
         <AiBrief quote={quote} blurb={blurb} valuation={valuation} news={mine} />
 
         {valuation ? <ValuationCard value={valuation} /> : <ModelFormulas />}
@@ -94,10 +99,11 @@ export function CompanyProfile({ ticker }: { ticker: string }) {
             <p className="mt-3 max-w-2xl text-sm leading-relaxed text-fg/80">{blurb}</p>
           </section>
         ) : null}
+        </div>
+        <aside className="mt-4 min-h-80 lg:absolute lg:inset-y-0 lg:right-0 lg:mt-0 lg:w-rail">
+          <SessionRegistry items={mine} title={`${quote.ticker} news`} className="h-80 lg:h-full" />
+        </aside>
       </div>
-      <aside className="h-80 shrink-0 lg:h-auto lg:w-rail">
-        <SessionRegistry items={mine} title={`${quote.ticker} news`} />
-      </aside>
     </main>
   );
 }
