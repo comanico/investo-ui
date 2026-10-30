@@ -2,6 +2,7 @@
 
 import { useNames } from "@/lib/session-provider";
 import { TransitionLink } from "@/components/transition-link";
+import { BookButton } from "./book-gate";
 import { TickerTape } from "./ticker-tape";
 
 export function SiteHeader() {
@@ -12,12 +13,7 @@ export function SiteHeader() {
       <TransitionLink href="/" className="wordmark relative z-20 shrink-0 text-2xl leading-none lg:text-3xl">
         Investo
       </TransitionLink>
-      <TransitionLink
-        href="/portfolio"
-        className="relative z-20 shrink-0 text-sm font-medium text-fg/70 transition-colors hover:text-fg"
-      >
-        Book
-      </TransitionLink>
+      <BookButton className="relative z-20 shrink-0 text-sm font-medium text-fg/70 transition-colors hover:text-fg disabled:opacity-50" />
       <div className="tape-mask min-w-0 flex-1">
         <TickerTape names={names} />
       </div>
