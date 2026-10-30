@@ -1,5 +1,6 @@
 import type { NewsHit } from "./news";
 import { investoRoRoot, readJsonObject } from "./investo-store.server";
+import { asDailyCloses, closeOnOrBefore, type DailyClose } from "./prices";
 import { isPack, type EquityQuote, type Pack, type PriceTick } from "./types";
 import {
   modelKindOf,
@@ -182,4 +183,14 @@ export async function loadPriceHistory(ticker: string): Promise<PriceTick[]> {
   }
   series.sort((a, b) => a.t - b.t);
   return series;
+}
+
+/** Last BVB close on or before a calendar date. */
+export async function loadCloseOn(ticker: string, date: string): Promise<DailyClose | null> {
+  const symbol = ticker.trim().toUpperCase();
+  if (!symbol || !/^\d{4}-\d{2}-\d{2}$/.test(date)) return null;
+  const names = await loadTickerNames();
+  if (!names[symbol]) return null;
+  const data = await readJsonObject<PriceFile>(`data/companies/${symbol}/price.json`);
+  return closeOnOrBefore(asDailyCloses(data?.prices), date);
 }

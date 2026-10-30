@@ -1,9 +1,16 @@
-import type { EquityQuote, PriceTick } from "./types";
-
 export type Holding = {
+  id: string;
   ticker: string;
   qty: number;
   avgCost: number;
+  boughtOn: string;
+};
+
+export type HoldingLine = {
+  ticker: string;
+  qty: number;
+  avgCost: number;
+  lots: Holding[];
 };
 
 export type ParseResult = {
@@ -93,69 +100,45 @@ export function parseHoldingsCsv(text: string, known: ReadonlySet<string>): Pars
       errors.push(`Row ${row}: average cost cannot be negative.`);
       continue;
     }
-    holdings.push({ ticker, qty, avgCost: avgRaw ?? 0 });
+    holdings.push({
+      id: newId(),
+      ticker,
+      qty,
+      avgCost: avgRaw ?? 0,
+      boughtOn: "",
+    });
   }
 
-  return { holdings: collapse(holdings), errors };
+  return { holdings, errors };
 }
 
-function collapse(rows: Holding[]): Holding[] {
-  const map = new Map<string, Holding>();
-  for (const row of rows) {
-    const prev = map.get(row.ticker);
-    if (!prev) {
-      map.set(row.ticker, { ...row });
-      continue;
-    }
-    const qty = prev.qty + row.qty;
-    const avgCost = qty === 0 ? 0 : (prev.qty * prev.avgCost + row.qty * row.avgCost) / qty;
-    map.set(row.ticker, { ticker: row.ticker, qty, avgCost });
+export function newId(): string {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return crypto.randomUUID();
   }
-  return [...map.values()];
+  return `lot-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
 
-export function bookValue(holdings: Holding[], names: EquityQuote[], priceOf: (quote: EquityQuote) => number): number {
-  const quotes = new Map(names.map((quote) => [quote.ticker, quote]));
-  return holdings.reduce((sum, holding) => {
-    const quote = quotes.get(holding.ticker);
-    if (!quote) return sum;
-    return sum + holding.qty * priceOf(quote);
-  }, 0);
+export function groupHoldings(holdings: Holding[]): HoldingLine[] {
+  const map = new Map<string, Holding[]>();
+  for (const row of holdings) {
+    const list = map.get(row.ticker) ?? [];
+    list.push(row);
+    map.set(row.ticker, list);
+  }
+  return [...map.entries()]
+    .sort((a, b) => a[0].localeCompare(b[0]))
+    .map(([ticker, lots]) => {
+      const qty = lots.reduce((sum, lot) => sum + lot.qty, 0);
+      const spent = lots.reduce((sum, lot) => sum + lot.qty * lot.avgCost, 0);
+      return { ticker, qty, avgCost: qty === 0 ? 0 : spent / qty, lots };
+    });
 }
 
-export function portfolioSeries(
-  holdings: Holding[],
-  names: EquityQuote[],
-  history: Record<string, PriceTick[]>,
-): PriceTick[] {
-  const quotes = new Map(names.map((quote) => [quote.ticker, quote]));
-  const active = holdings.filter((holding) => quotes.has(holding.ticker) && holding.qty > 0);
-  if (active.length === 0) return [];
-
-  const last = new Map<string, number>();
-  const events: { t: number; ticker: string; p: number }[] = [];
-  for (const holding of active) {
-    const quote = quotes.get(holding.ticker);
-    if (!quote) continue;
-    last.set(holding.ticker, quote.open);
-    for (const point of history[holding.ticker] ?? []) {
-      events.push({ t: point.t, ticker: holding.ticker, p: point.p });
-    }
-  }
-  events.sort((a, b) => a.t - b.t);
-
-  const mark = () =>
-    active.reduce((sum, holding) => sum + holding.qty * (last.get(holding.ticker) ?? 0), 0);
-
-  const points: PriceTick[] = [];
-  for (const event of events) {
-    last.set(event.ticker, event.p);
-    const previous = points.at(-1);
-    if (previous && previous.t === event.t) {
-      previous.p = mark();
-      continue;
-    }
-    points.push({ t: event.t, p: mark() });
-  }
-  return points;
+export function linePnl(qty: number, avgCost: number, last: number) {
+  const cost = qty * avgCost;
+  const value = qty * last;
+  const pnl = value - cost;
+  const pnlPct = cost === 0 ? 0 : (pnl / cost) * 100;
+  return { cost, value, pnl, pnlPct };
 }
