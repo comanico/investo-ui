@@ -46,7 +46,9 @@ const NAME_STOP = new Set([
 ]);
 
 function tag(block: string, name: string): string {
-  const m = block.match(new RegExp(`<${name}[^>]*>([\\s\\S]*?)</${name}>`, "i"));
+  const m = block.match(
+    new RegExp(`<${name}[^>]*>([\\s\\S]*?)</${name}>`, "i"),
+  );
   if (!m) return "";
   return m[1]
     .replace(/<!\[CDATA\[|\]\]>/g, "")
@@ -60,11 +62,18 @@ function tag(block: string, name: string): string {
 }
 
 function parseRss(xml: string, source: string): ParsedItem[] {
-  const items = xml.match(/<item[\s\S]*?<\/item>/gi) ?? xml.match(/<entry[\s\S]*?<\/entry>/gi) ?? [];
+  const items =
+    xml.match(/<item[\s\S]*?<\/item>/gi) ??
+    xml.match(/<entry[\s\S]*?<\/entry>/gi) ??
+    [];
   return items.slice(0, 50).map((block) => ({
     headline: tag(block, "title"),
     url: tag(block, "link") || tag(block, "id"),
-    at: tag(block, "pubDate") || tag(block, "published") || tag(block, "updated") || new Date().toISOString(),
+    at:
+      tag(block, "pubDate") ||
+      tag(block, "published") ||
+      tag(block, "updated") ||
+      new Date().toISOString(),
     source,
     body: tag(block, "description") || tag(block, "summary"),
     id: "",
@@ -109,7 +118,11 @@ function hasTickerToken(hay: string, ticker: string): boolean {
   );
 }
 
-function matchTicker(text: string, tickers: string[], names: Record<string, string>): string | null {
+function matchTicker(
+  text: string,
+  tickers: string[],
+  names: Record<string, string>,
+): string | null {
   const hay = fold(text);
   const ordered = [...tickers].sort((a, b) => b.length - a.length);
   for (const ticker of ordered) {
@@ -117,7 +130,8 @@ function matchTicker(text: string, tickers: string[], names: Record<string, stri
     if (!name) continue;
     for (const needle of needlesFor(name)) {
       const token = escapeRe(fold(needle));
-      if (new RegExp(`(^|[^A-Z0-9])${token}([^A-Z0-9]|$)`).test(hay)) return ticker;
+      if (new RegExp(`(^|[^A-Z0-9])${token}([^A-Z0-9]|$)`).test(hay))
+        return ticker;
     }
   }
   for (const ticker of ordered) {
@@ -146,18 +160,27 @@ async function pull(url: string, source: string): Promise<ParsedItem[]> {
 }
 
 function googleUrl(tickers: string[], names: Record<string, string>): string {
-  const query = tickers
+  const parts = tickers
     .map((ticker) => {
       const name = names[ticker]?.replace(/"/g, "") ?? "";
-      return name ? `(${ticker} OR "${name}")` : ticker;
+      const cleaned = name
+        .replace(/\bS\.?\s*A\.?\b/gi, " ")
+        .replace(/\bPLC\b/gi, " ")
+        .replace(/\s+/g, " ")
+        .trim();
+      return cleaned.length >= 6 ? `"${cleaned}"` : null;
     })
-    .join(" OR ");
-  return `https://news.google.com/rss/search?q=${encodeURIComponent(query || 'BVB OR "Bursa de Valori Bucuresti"')}&hl=ro&gl=RO&ceid=RO:ro`;
+    .filter(Boolean);
+  const query = parts.join(" OR ");
+  return `https://news.google.com/rss/search?q=${encodeURIComponent(
+    query || '"Bursa de Valori Bucuresti"',
+  )}&hl=ro&gl=RO&ceid=RO:ro`;
 }
 
 function chunks<T>(items: T[], size: number): T[][] {
   const out: T[][] = [];
-  for (let i = 0; i < items.length; i += size) out.push(items.slice(i, i + size));
+  for (let i = 0; i < items.length; i += size)
+    out.push(items.slice(i, i + size));
   return out;
 }
 
@@ -208,7 +231,12 @@ function mixHits(hits: Hit[], limit: number): Hit[] {
   return picked.slice(0, limit);
 }
 
-function pushHit(hits: Hit[], seen: Set<string>, item: ParsedItem, ticker: string) {
+function pushHit(
+  hits: Hit[],
+  seen: Set<string>,
+  item: ParsedItem,
+  ticker: string,
+) {
   const id = `${item.source}:${item.url || item.headline}`;
   if (seen.has(id)) return;
   seen.add(id);
