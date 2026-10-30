@@ -120,7 +120,7 @@ function Stat({ label, value }: { label: string; value: string }) {
 function BackLink() {
   return (
     <TransitionLink
-      href="/"
+      href="/heat"
       className="inline-flex min-h-11 items-center gap-2 text-sm font-medium text-fg/70 transition-colors duration-200 hover:text-fg"
     >
       <ArrowLeft className="size-4" strokeWidth={1.75} />

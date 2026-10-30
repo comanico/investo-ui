@@ -151,7 +151,7 @@ export function PortfolioProfile() {
     <main className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-4 pb-8 lg:flex-row lg:overflow-hidden">
       <div className="min-w-0 flex-1 space-y-4 lg:overflow-y-auto lg:pr-1">
         <TransitionLink
-          href="/"
+          href="/heat"
           className="inline-flex min-h-11 items-center gap-2 text-sm font-medium text-fg/70 transition-colors duration-200 hover:text-fg"
         >
           <ArrowLeft className="size-4" strokeWidth={1.75} />

@@ -7,10 +7,16 @@ export function AuthModal({
   open,
   onClose,
   onSignedIn,
+  title = "Book",
+  description = "Sign in with email and password to open your book.",
+  allowSignUp = true,
 }: {
   open: boolean;
   onClose: () => void;
   onSignedIn: () => void;
+  title?: string;
+  description?: string;
+  allowSignUp?: boolean;
 }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -74,9 +80,9 @@ export function AuthModal({
         onClick={(event) => event.stopPropagation()}
       >
         <h2 id="book-login-title" className="wordmark text-3xl leading-none">
-          Book
+          {title}
         </h2>
-        <p className="mt-2 text-sm text-fg/55">Sign in with email and password to open your book.</p>
+        <p className="mt-2 text-sm text-fg/55">{description}</p>
 
         <form
           className="mt-5 flex flex-col gap-3"
@@ -119,14 +125,16 @@ export function AuthModal({
             >
               Sign in
             </button>
-            <button
-              type="button"
-              disabled={busy}
-              onClick={() => void submit("up")}
-              className="flex-1 rounded-xl border border-line px-3 py-2 text-sm text-fg/80 disabled:opacity-50"
-            >
-              Create account
-            </button>
+            {allowSignUp ? (
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => void submit("up")}
+                className="flex-1 rounded-xl border border-line px-3 py-2 text-sm text-fg/80 disabled:opacity-50"
+              >
+                Create account
+              </button>
+            ) : null}
           </div>
         </form>
       </div>
