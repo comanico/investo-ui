@@ -8,6 +8,7 @@ import {
   type ValuationResult,
 } from "@/lib/valuation";
 import { cn } from "@/lib/utils";
+import { ShareButton } from "./share-button";
 
 export function ValuationCard({ value }: { value: ValuationResult }) {
   const up = value.upsidePct > 0;
@@ -20,16 +21,21 @@ export function ValuationCard({ value }: { value: ValuationResult }) {
           <p className="text-xs font-medium uppercase tracking-wide text-fg/50">Valuation</p>
           <h2 className="mt-1 text-lg font-semibold">{value.modelLabel}</h2>
         </div>
-        <span
-          className={cn(
-            "rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wide",
-            value.stance === "cheap" && "bg-up/15 text-up",
-            value.stance === "rich" && "bg-down/15 text-down",
-            value.stance === "fair" && "bg-fg/10 text-fg/80",
-          )}
-        >
-          {STANCE_LABEL[value.stance]}
-        </span>
+        <div className="flex flex-wrap items-center gap-2">
+          <span
+            className={cn(
+              "rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wide",
+              value.stance === "cheap" && "bg-up/15 text-up",
+              value.stance === "rich" && "bg-down/15 text-down",
+              value.stance === "fair" && "bg-fg/10 text-fg/80",
+            )}
+          >
+            {STANCE_LABEL[value.stance]}
+          </span>
+          <ShareButton
+            request={() => fetch(`/api/share?kind=company&ticker=${encodeURIComponent(value.ticker)}`)}
+          />
+        </div>
       </div>
 
       <div className="mt-5 grid grid-cols-2 gap-x-6 gap-y-4">

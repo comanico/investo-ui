@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState, type FormEvent } from "react";
-import { ArrowLeft, Briefcase } from "lucide-react";
+import { ArrowLeft, Briefcase, X } from "lucide-react";
 import { TransitionLink } from "@/components/transition-link";
 import { useBook } from "@/lib/portfolio-store";
 import { groupHoldings, linePnl, newId, parseHoldingsCsv } from "@/lib/portfolio";
@@ -12,6 +12,7 @@ import { useDeskNews } from "@/lib/use-desk-news";
 import { useNames } from "@/lib/session-provider";
 import { useSupabaseSession } from "@/lib/supabase/use-session";
 import { SessionRegistry } from "./session-registry";
+import { ShareButton } from "./share-button";
 import { formatSignedPct } from "@/lib/valuation";
 import { cn } from "@/lib/utils";
 
@@ -170,18 +171,53 @@ export function PortfolioProfile() {
                 {lines.length} {lines.length === 1 ? "name" : "names"} · BVB
               </p>
             </div>
-            <div className="sm:text-right">
-              <div className="flex items-baseline gap-1 sm:justify-end">
-                <span className="text-3xl font-bold tabular-nums">{formatMoney(value)}</span>
-                <span className="text-sm text-fg/75">RON</span>
+            <div className="flex flex-wrap items-center gap-3 sm:justify-end">
+              <div className="sm:text-right">
+                <div className="flex items-baseline gap-1 sm:justify-end">
+                  <span className="text-3xl font-bold tabular-nums">{formatMoney(value)}</span>
+                  <span className="text-sm text-fg/75">RON</span>
+                </div>
+                <p className="mt-1 text-sm font-medium text-fg/80">
+                  {formatSignedPct(pnlPct)} vs cost
+                  <span className="ml-2 tabular-nums text-fg/60">
+                    {pnl > 0 ? "+" : pnl < 0 ? "−" : ""}
+                    {formatMoney(Math.abs(pnl))} RON
+                  </span>
+                </p>
               </div>
-              <p className="mt-1 text-sm font-medium text-fg/80">
-                {formatSignedPct(pnlPct)} vs cost
-                <span className="ml-2 tabular-nums text-fg/60">
-                  {pnl > 0 ? "+" : pnl < 0 ? "−" : ""}
-                  {formatMoney(Math.abs(pnl))} RON
-                </span>
-              </p>
+              <ShareButton
+                disabled={lines.length === 0}
+                request={() => {
+                  const top = [...lines]
+                    .map((line) => {
+                      const last = quotes.get(line.ticker)?.price ?? 0;
+                      const stats = linePnl(line.qty, line.avgCost, last);
+                      return { ticker: line.ticker, pnlPct: stats.pnlPct, value: stats.value };
+                    })
+                    .sort((a, b) => b.value - a.value)
+                    .slice(0, 3)
+                    .map(({ ticker, pnlPct }) => ({ ticker, pnlPct }));
+                  return fetch("/api/share", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                      kind: "book",
+                      value,
+                      cost,
+                      pnl,
+                      pnlPct,
+                      dayPct,
+                      names: lines.length,
+                      top,
+                      lots: holdings.map((lot) => ({
+                        ticker: lot.ticker,
+                        qty: lot.qty,
+                        boughtOn: lot.boughtOn,
+                      })),
+                    }),
+                  });
+                }}
+              />
             </div>
           </div>
         </section>
@@ -240,10 +276,11 @@ export function PortfolioProfile() {
                         <td className="py-2 text-right">
                           <button
                             type="button"
+                            aria-label={`Remove ${line.ticker}`}
                             onClick={() => void remove(line.ticker)}
-                            className="text-xs text-fg/45 underline-offset-2 hover:text-fg hover:underline"
+                            className="inline-flex size-8 items-center justify-center rounded-md bg-down text-white hover:bg-down-deep"
                           >
-                            Remove
+                            <X className="size-4" strokeWidth={2.5} />
                           </button>
                         </td>
                       </tr>

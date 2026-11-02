@@ -250,12 +250,7 @@ function pushHit(
   });
 }
 
-export async function GET(request: Request) {
-  const { searchParams } = new URL(request.url);
-  const tickers = (searchParams.get("tickers") ?? "")
-    .split(",")
-    .map((t) => t.trim().toUpperCase())
-    .filter(Boolean);
+export async function loadNewsHits(tickers: string[]): Promise<Hit[]> {
   const names = tickers.length ? await loadTickerNames() : {};
 
   const googleJobs =
@@ -305,5 +300,13 @@ export async function GET(request: Request) {
   });
 
   const limit = Math.min(120, Math.max(24, tickers.length * 3 || 24));
-  return NextResponse.json(mixHits(hits, limit));
+  return mixHits(hits, limit);
+}
+
+export async function GET(request: Request) {
+  const tickers = (new URL(request.url).searchParams.get("tickers") ?? "")
+    .split(",")
+    .map((t) => t.trim().toUpperCase())
+    .filter(Boolean);
+  return NextResponse.json(await loadNewsHits(tickers));
 }

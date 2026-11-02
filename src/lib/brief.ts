@@ -1,4 +1,4 @@
-import type { NewsHit } from "./news";
+import { byNewest, type NewsHit } from "./news";
 import type { EquityQuote } from "./types";
 import { formatRon } from "./market";
 import { formatSignedPct, STANCE_LABEL, type ValuationResult } from "./valuation";
@@ -8,12 +8,27 @@ export type BriefSource = {
   detail: string;
 };
 
+export type NewsLine = {
+  title: string;
+  date: string;
+  source: string;
+};
+
 export type CompanyBrief = {
   profile: string;
   valuation: string;
   market: string;
+  headlines: NewsLine[];
   sources: BriefSource[];
 };
+
+export function newsLines(news: NewsHit[], count = 3): NewsLine[] {
+  return [...news].sort(byNewest).slice(0, count).map((item) => ({
+    title: item.headline.trim(),
+    date: when(item.at),
+    source: item.source,
+  }));
+}
 
 function input(value: ValuationResult, label: string): string | undefined {
   return value.inputs.find((row) => row.label === label)?.value;
@@ -51,19 +66,16 @@ export function briefCompany(
     });
   }
 
-  const latest = news.slice(0, 3);
+  const headlines = newsLines(news);
   let market: string;
-  if (latest.length === 0) {
+  if (headlines.length === 0) {
     market = `No headlines are loaded for ${quote.ticker}.`;
   } else {
-    const lines = latest
-      .map((item) => `${item.headline} (${item.source}, ${when(item.at)})`)
-      .join(" ");
-    market = lines;
-    for (const item of latest) {
-      sources.push({ label: item.source, detail: `${quote.ticker} · ${when(item.at)}` });
+    market = headlines.map((line) => `${line.title} ${line.date} ${line.source}`).join(" ");
+    for (const line of headlines) {
+      sources.push({ label: line.source, detail: `${quote.ticker} · ${line.date}` });
     }
   }
 
-  return { profile, valuation: valuationText, market, sources };
+  return { profile, valuation: valuationText, market, headlines, sources };
 }

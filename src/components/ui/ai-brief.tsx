@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useReducedMotion } from "motion/react";
-import { briefCompany } from "@/lib/brief";
+import { briefCompany, type NewsLine } from "@/lib/brief";
 import type { NewsHit } from "@/lib/news";
 import type { EquityQuote } from "@/lib/types";
 import type { ValuationResult } from "@/lib/valuation";
@@ -21,7 +21,7 @@ export function AiBrief({
   news: NewsHit[];
 }) {
   const brief = briefCompany(quote, blurb, valuation, news);
-  const parts = [brief.profile, brief.valuation, brief.market];
+  const parts = [brief.profile, brief.valuation];
   const reduceMotion = useReducedMotion();
   const sectionRef = useRef<HTMLElement>(null);
   const [visible, setVisible] = useState(false);
@@ -79,7 +79,7 @@ export function AiBrief({
       <div className="mt-5 space-y-4">
         <Block label="Profile" text={parts[0]!} shown={slices[0]!} caret={active === 0} />
         <Block label="How the value is built" text={parts[1]!} shown={slices[1]!} caret={active === 1} />
-        <Block label="How the market sees it" text={parts[2]!} shown={slices[2]!} caret={active === 2} />
+        <MarketBlock ticker={quote.ticker} headlines={brief.headlines} />
       </div>
       <h3 className="mt-6 text-xs font-semibold uppercase tracking-wide text-fg/50">Sources</h3>
       <ul className="mt-2 flex flex-col gap-1.5">
@@ -91,6 +91,30 @@ export function AiBrief({
         ))}
       </ul>
     </section>
+  );
+}
+
+function MarketBlock({ ticker, headlines }: { ticker: string; headlines: NewsLine[] }) {
+  return (
+    <div>
+      <h3 className="text-xs font-semibold uppercase tracking-wide text-fg/50">How the market sees it</h3>
+      {headlines.length === 0 ? (
+        <p className="mt-1.5 text-sm leading-relaxed text-fg/80">No headlines are loaded for {ticker}.</p>
+      ) : (
+        <ul className="mt-1.5 flex flex-col gap-1.5 text-sm leading-relaxed text-fg/80">
+          {headlines.map((line) => (
+            <li key={`${line.title}-${line.date}-${line.source}`} className="flex gap-2">
+              <span className="mt-0.5 text-fg/45">•</span>
+              <span className="min-w-0 text-pretty">
+                {line.title}{" "}
+                <span className="text-fg/50">{line.date}</span>{" "}
+                <span className="text-fg/50">{line.source}</span>
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
   );
 }
 
