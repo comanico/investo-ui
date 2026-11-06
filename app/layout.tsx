@@ -4,6 +4,9 @@ import { Shell } from "@/components/shell";
 import { loadDesk } from "@/lib/investo-ro.server";
 import "@/styles.css";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export const metadata: Metadata = {
   title: "Investo",
   description: "Investo — BVB equity heat terminal.",
