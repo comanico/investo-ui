@@ -69,6 +69,37 @@ export function PortfolioProfile() {
   const isUp = pnl > 0;
   const isDown = pnl < 0;
 
+  const postBook = (path: string) => {
+    const top = [...lines]
+      .map((line) => {
+        const last = quotes.get(line.ticker)?.price ?? 0;
+        const stats = linePnl(line.qty, line.avgCost, last);
+        return { ticker: line.ticker, pnlPct: stats.pnlPct, value: stats.value };
+      })
+      .sort((a, b) => b.value - a.value)
+      .slice(0, 3)
+      .map(({ ticker: symbol, pnlPct: linePct }) => ({ ticker: symbol, pnlPct: linePct }));
+    return fetch(path, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        kind: "book",
+        value,
+        cost,
+        pnl,
+        pnlPct,
+        dayPct,
+        names: lines.length,
+        top,
+        lots: holdings.map((lot) => ({
+          ticker: lot.ticker,
+          qty: lot.qty,
+          boughtOn: lot.boughtOn,
+        })),
+      }),
+    });
+  };
+
   const onSave = async (event: FormEvent) => {
     event.preventDefault();
     const symbol = ticker.toUpperCase();
@@ -185,38 +216,13 @@ export function PortfolioProfile() {
                   </span>
                 </p>
               </div>
+              <ShareButton disabled={lines.length === 0} request={() => postBook("/api/share")} />
               <ShareButton
                 disabled={lines.length === 0}
-                request={() => {
-                  const top = [...lines]
-                    .map((line) => {
-                      const last = quotes.get(line.ticker)?.price ?? 0;
-                      const stats = linePnl(line.qty, line.avgCost, last);
-                      return { ticker: line.ticker, pnlPct: stats.pnlPct, value: stats.value };
-                    })
-                    .sort((a, b) => b.value - a.value)
-                    .slice(0, 3)
-                    .map(({ ticker, pnlPct }) => ({ ticker, pnlPct }));
-                  return fetch("/api/share", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                      kind: "book",
-                      value,
-                      cost,
-                      pnl,
-                      pnlPct,
-                      dayPct,
-                      names: lines.length,
-                      top,
-                      lots: holdings.map((lot) => ({
-                        ticker: lot.ticker,
-                        qty: lot.qty,
-                        boughtOn: lot.boughtOn,
-                      })),
-                    }),
-                  });
-                }}
+                idle="Animate"
+                pending="Animating…"
+                fallbackName="book.zip"
+                request={() => postBook("/api/animate")}
               />
             </div>
           </div>

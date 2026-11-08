@@ -35,6 +35,12 @@ export function ValuationCard({ value }: { value: ValuationResult }) {
           <ShareButton
             request={() => fetch(`/api/share?kind=company&ticker=${encodeURIComponent(value.ticker)}`)}
           />
+          <ShareButton
+            idle="Animate"
+            pending="Animating…"
+            fallbackName={`${value.ticker}.zip`}
+            request={() => fetch(`/api/animate?ticker=${encodeURIComponent(value.ticker)}`)}
+          />
         </div>
       </div>
 

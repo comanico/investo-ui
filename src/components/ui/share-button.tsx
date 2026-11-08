@@ -7,10 +7,16 @@ export function ShareButton({
   disabled,
   className,
   request,
+  idle = "Share",
+  pending = "Sharing…",
+  fallbackName = "share.png",
 }: {
   disabled?: boolean;
   className?: string;
   request: () => Promise<Response>;
+  idle?: string;
+  pending?: string;
+  fallbackName?: string;
 }) {
   const [busy, setBusy] = useState(false);
 
@@ -25,7 +31,7 @@ export function ShareButton({
             if (!res.ok) return;
             const blob = await res.blob();
             const match = /filename="?([^"]+)"?/i.exec(res.headers.get("Content-Disposition") ?? "");
-            const name = match?.[1] ?? "share.png";
+            const name = match?.[1] ?? fallbackName;
             const href = URL.createObjectURL(blob);
             const link = document.createElement("a");
             link.href = href;
@@ -40,7 +46,7 @@ export function ShareButton({
         className,
       )}
     >
-      {busy ? "Sharing…" : "Share"}
+      {busy ? pending : idle}
     </button>
   );
 }
