@@ -157,6 +157,20 @@ export function valuationFromBackend(row: BackendModelRow, asOf: string): Valuat
   };
 }
 
+/** Highest model gap first. Names without a stored value are left out. */
+export function mostUndervalued<T extends { ticker: string }>(
+  names: T[],
+  valuations: Record<string, ValuationResult>,
+  limit = 3,
+): T[] {
+  return names
+    .map((row) => ({ row, upside: valuations[row.ticker.toUpperCase()]?.upsidePct }))
+    .filter((hit): hit is { row: T; upside: number } => typeof hit.upside === "number" && Number.isFinite(hit.upside))
+    .sort((a, b) => b.upside - a.upside || a.row.ticker.localeCompare(b.row.ticker))
+    .slice(0, Math.max(0, limit))
+    .map((hit) => hit.row);
+}
+
 export function formatSignedPct(n: number): string {
   return `${n > 0 ? "+" : n < 0 ? "−" : ""}${Math.abs(n).toFixed(1)}%`;
 }

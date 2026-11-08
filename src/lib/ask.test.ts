@@ -1,6 +1,7 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { CAPABILITY_REPLY, capabilityReply, findDeskTicker, matchDeskName, suggestDeskNames } from "./ask.ts";
+import { mostUndervalued } from "./valuation.ts";
 
 const names = [
   { ticker: "TLV", name: "Banca Transilvania S.A." },
@@ -49,11 +50,35 @@ describe("capabilityReply", () => {
     assert.equal(capabilityReply("how is TLV valued?"), null);
   });
 
-  it("does not add a fourth feature or mention strategies", () => {
+  it("lists three features and does not call the strategy live", () => {
     const lines = CAPABILITY_REPLY.split("\n").filter((line) => line.trim().length > 0);
-    assert.equal(lines.length, 3);
+    assert.equal(lines.length, 4);
     assert.equal(lines[0], "What I can do:");
-    assert.equal(/strateg/i.test(CAPABILITY_REPLY), false);
+    assert.equal(lines[3], "Test a strategy before you trade. Filters on the book are coming in.");
+    assert.equal(/live/i.test(CAPABILITY_REPLY), false);
+  });
+});
+
+describe("mostUndervalued", () => {
+  const desk = [
+    { ticker: "TLV" },
+    { ticker: "SNP" },
+    { ticker: "BRD" },
+    { ticker: "H2O" },
+  ];
+  const valuations = {
+    TLV: { upsidePct: -37.6 },
+    SNP: { upsidePct: 18.2 },
+    BRD: { upsidePct: 41 },
+    H2O: { upsidePct: 9.1 },
+  };
+
+  it("ranks the widest gap above the close first", () => {
+    const picks = mostUndervalued(desk, valuations as never, 3);
+    assert.deepEqual(
+      picks.map((row) => row.ticker),
+      ["BRD", "SNP", "H2O"],
+    );
   });
 });
 

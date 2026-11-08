@@ -35,6 +35,12 @@ export function useNames(): EquityQuote[] {
   return fromCtx ?? fromStore;
 }
 
+export function useValuations(): Record<string, ValuationResult> {
+  const fromCtx = useContext(DeskContext)?.valuations;
+  const fromStore = useSession((s) => s.valuations);
+  return fromCtx ?? fromStore;
+}
+
 export function useValuation(ticker: string): ValuationResult | null {
   const fromCtx = useContext(DeskContext)?.valuations;
   const fromStore = useSession((s) => s.valuations);

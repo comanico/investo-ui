@@ -1,19 +1,29 @@
 "use client";
 
 import { useMemo, useState, type FormEvent, type KeyboardEvent } from "react";
+import { motion, useReducedMotion } from "motion/react";
 import { useRouter } from "next/navigation";
-import { matchDeskName, suggestDeskNames } from "@/lib/ask";
-import { useNames } from "@/lib/session-provider";
+import { capabilityReply, matchDeskName, suggestDeskNames } from "@/lib/ask";
+import { useNames, useValuations } from "@/lib/session-provider";
+import { mostUndervalued } from "@/lib/valuation";
+import { HeatCard } from "./heat-card";
 
 export function AskBar() {
   const router = useRouter();
   const names = useNames();
+  const valuations = useValuations();
+  const reduceMotion = useReducedMotion();
   const [q, setQ] = useState("");
   const [looking, setLooking] = useState(false);
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState(0);
   const [answer, setAnswer] = useState<string | null>(null);
   const [offTopic, setOffTopic] = useState<string | null>(null);
+  const [showPicks, setShowPicks] = useState(false);
+  const picks = useMemo(
+    () => (showPicks ? mostUndervalued(names, valuations, 3) : []),
+    [names, showPicks, valuations],
+  );
 
   const suggestions = useMemo(() => suggestDeskNames(q, names), [q, names]);
   const showList = open && suggestions.length > 0 && !looking;
@@ -40,6 +50,7 @@ export function AskBar() {
     setOpen(false);
     setAnswer(null);
     setOffTopic(null);
+    setShowPicks(false);
     try {
       const res = await fetch("/api/ask", {
         method: "POST",
@@ -53,6 +64,7 @@ export function AskBar() {
       }
       if (typeof body.answer === "string" && body.answer.trim()) {
         setAnswer(body.answer.trim());
+        setShowPicks(capabilityReply(query) !== null);
       }
     } finally {
       setLooking(false);
@@ -73,8 +85,8 @@ export function AskBar() {
   }
 
   return (
-    <div className="flex w-full max-w-2xl flex-col items-stretch gap-4">
-      <form className="relative" onSubmit={(event) => void onSubmit(event)}>
+    <div className="flex w-full max-w-5xl flex-col items-stretch gap-4">
+      <form className="relative mx-auto w-full max-w-2xl" onSubmit={(event) => void onSubmit(event)}>
         <label className="sr-only" htmlFor="ask">
           Search
         </label>
@@ -125,9 +137,9 @@ export function AskBar() {
           </ul>
         ) : null}
       </form>
-      {looking ? <p className="text-sm text-fg/55">Looking…</p> : null}
+      {looking ? <p className="mx-auto w-full max-w-2xl text-sm text-fg/55">Looking…</p> : null}
       {offTopic ? (
-        <div className="glass-panel p-5">
+        <div className="glass-panel mx-auto w-full max-w-2xl p-5">
           <p className="text-sm leading-relaxed text-fg/80">That one is outside the book.</p>
           <a
             href={`https://grok.com/?q=${encodeURIComponent(offTopic)}`}
@@ -140,8 +152,26 @@ export function AskBar() {
         </div>
       ) : null}
       {answer ? (
-        <div className="glass-panel p-5">
+        <div className="glass-panel mx-auto w-full max-w-2xl p-5">
           <p className="whitespace-pre-line text-sm leading-relaxed text-fg/80 text-pretty">{answer}</p>
+        </div>
+      ) : null}
+      {picks.length > 0 ? (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          {picks.map((item, index) => (
+            <motion.div
+              key={item.ticker}
+              initial={reduceMotion ? false : { opacity: 0, y: 36 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={
+                reduceMotion
+                  ? { duration: 0 }
+                  : { duration: 0.5, delay: 0.08 + index * 0.08, ease: [0.22, 1, 0.36, 1] }
+              }
+            >
+              <HeatCard item={item} prominent />
+            </motion.div>
+          ))}
         </div>
       ) : null}
     </div>

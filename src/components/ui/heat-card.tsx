@@ -42,9 +42,10 @@ const FLIP_EASE: [number, number, number, number] = [0.22, 1, 0.36, 1];
 type Props = {
   item: EquityQuote;
   layout?: "tile" | "row";
+  prominent?: boolean;
 };
 
-export function HeatCard({ item, layout = "tile" }: Props) {
+export function HeatCard({ item, layout = "tile", prominent = false }: Props) {
   const Icon = PACK_ICONS[item.pack];
   const valuation = useValuation(item.ticker);
   const { isUp, isDown } = heatFromStance(valuation?.stance);
@@ -114,15 +115,34 @@ export function HeatCard({ item, layout = "tile" }: Props) {
                 : { duration: 0.55, delay: 0, ease: FLIP_EASE }
           }
         >
-          <div className={cn("heat-flip-face heat-flip-front heat-tile px-3 pt-5 pb-3", heatMods)}>
-            <div className="flex shrink-0 justify-center">
-              <div className="flex size-20 items-center justify-center rounded-full bg-fg/10 sm:size-24">
-                <Icon className="size-10 text-fg/90 sm:size-12" strokeWidth={1.5} />
+          <div
+            className={cn(
+              "heat-flip-face heat-flip-front heat-tile px-3 pb-3",
+              prominent ? "pt-3" : "pt-4",
+              heatMods,
+            )}
+          >
+            {prominent ? (
+              <div className="pointer-events-none absolute inset-0 flex items-center justify-center pb-16">
+                <div className="flex size-24 items-center justify-center rounded-full bg-fg/10 sm:size-28">
+                  <Icon className="size-12 text-fg/90 sm:size-14" strokeWidth={1.5} />
+                </div>
               </div>
-            </div>
-            <div className="mt-4 flex min-h-0 w-full flex-1 flex-col justify-end space-y-0.5 text-center">
+            ) : (
+              <div className="flex shrink-0 justify-center">
+                <div className="flex size-16 items-center justify-center rounded-full bg-fg/10 sm:size-20">
+                  <Icon className="size-8 text-fg/90 sm:size-10" strokeWidth={1.5} />
+                </div>
+              </div>
+            )}
+            <div
+              className={cn(
+                "flex w-full flex-col space-y-0.5 text-center",
+                prominent ? "relative z-10 mt-auto items-center" : "mt-3 flex-1 justify-end",
+              )}
+            >
               <p className="text-xs font-medium uppercase tracking-wide text-fg/70">{item.ticker}</p>
-              <h2 className="line-clamp-2 text-sm font-semibold leading-tight">
+              <h2 className="line-clamp-3 text-xs font-semibold leading-snug">
                 {item.name}
               </h2>
               <div className="flex items-center justify-center gap-1 text-lg font-bold">

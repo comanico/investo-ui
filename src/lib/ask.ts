@@ -76,7 +76,9 @@ export const CAPABILITY_REPLY = `What I can do:
 
 Value a company from its fundamentals. Three models: dividend discount, FCFF, residual income. The number on the profile is the stored result.
 
-Hold a book across brokers. Add lots by hand. See cost, last close, and P&L in one place.`;
+Hold a book across brokers. Add lots by hand. See cost, last close, and P&L in one place.
+
+Test a strategy before you trade. Filters on the book are coming in.`;
 
 function capabilityQuery(query: string): string {
   return foldQuery(query)
