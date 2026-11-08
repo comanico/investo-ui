@@ -3,7 +3,7 @@ import path from "node:path";
 import { generateText } from "ai";
 import { xai } from "@ai-sdk/xai";
 import { NextResponse } from "next/server";
-import { findDeskTicker } from "@/lib/ask";
+import { capabilityReply, findDeskTicker } from "@/lib/ask";
 import { loadDesk } from "@/lib/investo-ro.server";
 import type { ValuationResult } from "@/lib/valuation";
 
@@ -34,6 +34,9 @@ export async function POST(request: Request) {
   const body = (await request.json().catch(() => null)) as { q?: unknown } | null;
   const q = typeof body?.q === "string" ? body.q.trim() : "";
   if (!q) return NextResponse.json({ answer: "" });
+
+  const canned = capabilityReply(q);
+  if (canned) return NextResponse.json({ answer: canned, offTopic: false });
 
   const desk = await loadDesk();
   const ticker = findDeskTicker(q, desk.names);

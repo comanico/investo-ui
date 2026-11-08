@@ -72,6 +72,32 @@ export function findDeskTicker(query: string, names: DeskName[]): string | null 
 
 const SUGGEST_LIMIT = 8;
 
+export const CAPABILITY_REPLY = `What I can do:
+
+Value a company from its fundamentals. Three models: dividend discount, FCFF, residual income. The number on the profile is the stored result.
+
+Hold a book across brokers. Add lots by hand. See cost, last close, and P&L in one place.`;
+
+function capabilityQuery(query: string): string {
+  return foldQuery(query)
+    .replace(/['’]/g, "")
+    .replace(/[?.!,]+/g, " ")
+    .replace(/\b(please|thanks|thank you)\b/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+/** Exact product answer. Close wording only; company questions stay on the model. */
+export function capabilityReply(query: string): string | null {
+  const q = capabilityQuery(query);
+  const hit =
+    /^(what can you do|what do you do)( for me)?$/.test(q) ||
+    /^what does (this|it|investo) do$/.test(q) ||
+    /^(what is|whats) (this|investo)$/.test(q) ||
+    /^what is investo (for)?$/.test(q);
+  return hit ? CAPABILITY_REPLY : null;
+}
+
 /** Ranked ticker and name hits while the user is typing. */
 export function suggestDeskNames(query: string, names: DeskName[]): DeskName[] {
   const needle = foldQuery(query);

@@ -141,7 +141,7 @@ export function AskBar() {
       ) : null}
       {answer ? (
         <div className="glass-panel p-5">
-          <p className="text-sm leading-relaxed text-fg/80 text-pretty">{answer}</p>
+          <p className="whitespace-pre-line text-sm leading-relaxed text-fg/80 text-pretty">{answer}</p>
         </div>
       ) : null}
     </div>

@@ -1,6 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { findDeskTicker, matchDeskName, suggestDeskNames } from "./ask.ts";
+import { CAPABILITY_REPLY, capabilityReply, findDeskTicker, matchDeskName, suggestDeskNames } from "./ask.ts";
 
 const names = [
   { ticker: "TLV", name: "Banca Transilvania S.A." },
@@ -35,6 +35,25 @@ describe("suggestDeskNames", () => {
 
   it("is empty when nothing is typed", () => {
     assert.equal(suggestDeskNames("  ", names).length, 0);
+  });
+});
+
+describe("capabilityReply", () => {
+  it("answers what it can do, what this does, and what Investo is", () => {
+    for (const q of ["What can you do?", "what does this do", "what is investo", "what's Investo"]) {
+      assert.equal(capabilityReply(q), CAPABILITY_REPLY);
+    }
+  });
+
+  it("leaves a company question to the model", () => {
+    assert.equal(capabilityReply("how is TLV valued?"), null);
+  });
+
+  it("does not add a fourth feature or mention strategies", () => {
+    const lines = CAPABILITY_REPLY.split("\n").filter((line) => line.trim().length > 0);
+    assert.equal(lines.length, 3);
+    assert.equal(lines[0], "What I can do:");
+    assert.equal(/strateg/i.test(CAPABILITY_REPLY), false);
   });
 });
 

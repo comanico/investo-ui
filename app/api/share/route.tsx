@@ -3,7 +3,7 @@ import path from "node:path";
 import type { ReactElement } from "react";
 import { ImageResponse } from "next/og";
 import { NextResponse } from "next/server";
-import { loadNewsHits } from "../news/route";
+import { loadNewsHits } from "@/lib/news-feed.server";
 import { loadDesk, loadPriceHistory } from "@/lib/investo-ro.server";
 import { newsLines } from "@/lib/brief";
 import { bookValueSeries } from "@/lib/share-chart";
