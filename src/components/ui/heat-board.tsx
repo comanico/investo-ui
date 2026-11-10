@@ -34,14 +34,14 @@ function DeskRow({
         <p className="text-xs tabular-nums text-fg/45">{items.length} names</p>
       </header>
       <div className="relative">
-        <div className="flex items-center gap-4 overflow-x-auto py-3 pl-4 pr-[22rem] sm:pr-[28rem]">
+        <div className="flex touch-pan-x items-center gap-4 overflow-x-auto overscroll-x-contain py-3 pr-4 pl-4 md:pr-[22rem] lg:pr-[28rem]">
           {items.map((item) => (
             <div key={item.ticker} className="aspect-square h-56 shrink-0 sm:h-64">
               <HeatCard item={item} />
             </div>
           ))}
         </div>
-        <div className="absolute inset-y-3 right-0 z-10 w-80 sm:w-[26rem]">
+        <div className="absolute inset-y-3 right-0 z-10 hidden w-80 md:block lg:w-[26rem]">
           <div className="pointer-events-none absolute inset-y-0 -left-12 w-12 bg-gradient-to-r from-transparent to-bg" />
           <SessionRegistry
             items={tape}

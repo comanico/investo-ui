@@ -110,7 +110,7 @@ export function AskBar() {
           }}
           onKeyDown={onKey}
           placeholder="TLV, or how is Banca Transilvania valued?"
-          className="glass-panel h-14 w-full px-5 text-base text-fg outline-none placeholder:text-fg/40 focus:border-fg/30"
+          className="h-14 w-full rounded-3xl border border-white/45 bg-white/12 px-5 text-base text-fg shadow-[0_0_0_1px_rgb(255_255_255/0.06),0_8px_28px_rgb(0_0_0/0.35)] outline-none placeholder:text-white/55 focus:border-white/70 focus:bg-white/16"
         />
         {showList ? (
           <ul
